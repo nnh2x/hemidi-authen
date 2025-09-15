@@ -2,6 +2,9 @@ import { ApiClient } from '../utils/api-client';
 import { TestDataGenerator } from '../data/test-data';
 import { config } from '../config/config';
 
+// Type assertion helper for test responses
+const asAny = (data: any) => data as any;
+
 describe('Rate Limiting Tests', () => {
   let apiClient: ApiClient;
 
@@ -119,13 +122,13 @@ describe('Rate Limiting Tests', () => {
       const user = TestDataGenerator.generateRandomUser('user');
       await apiClient.register(user);
       const userLogin = await apiClient.login(TestDataGenerator.getLoginCredentials(user));
-      userToken = userLogin.data.access_token;
+      userToken = asAny(userLogin.data).access_token;
 
       // Create and login admin user
       const admin = TestDataGenerator.generateRandomUser('admin');
       await apiClient.register(admin);
       const adminLogin = await apiClient.login(TestDataGenerator.getLoginCredentials(admin));
-      adminToken = adminLogin.data.access_token;
+      adminToken = asAny(adminLogin.data).access_token;
     });
 
     test('Nên áp dụng rate limit cho user profile endpoint', async () => {
@@ -164,7 +167,7 @@ describe('Rate Limiting Tests', () => {
       for (const user of users) {
         await apiClient.register(user);
         const loginResponse = await apiClient.login(TestDataGenerator.getLoginCredentials(user));
-        tokens.push(loginResponse.data.access_token);
+        tokens.push(asAny(loginResponse.data).access_token);
       }
       
       const limit = config.rateLimits.user.logout;
@@ -196,7 +199,7 @@ describe('Rate Limiting Tests', () => {
       
       for (const user of users) {
         const registerResponse = await apiClient.register(user);
-        refreshTokens.push(registerResponse.data.refresh_token);
+        refreshTokens.push(asAny(registerResponse.data).refresh_token);
       }
       
       const limit = config.rateLimits.user.refresh;
@@ -232,14 +235,14 @@ describe('Rate Limiting Tests', () => {
       const admin = TestDataGenerator.generateRandomUser('admin');
       await apiClient.register(admin);
       const adminLogin = await apiClient.login(TestDataGenerator.getLoginCredentials(admin));
-      adminToken = adminLogin.data.access_token;
+      adminToken = asAny(adminLogin.data).access_token;
 
       // Create a regular user for profile editing
       const user = TestDataGenerator.generateRandomUser('user');
       await apiClient.register(user);
       const userLogin = await apiClient.login(TestDataGenerator.getLoginCredentials(user));
-      const profileResponse = await apiClient.getProfile(userLogin.data.access_token);
-      userId = profileResponse.data.id;
+      const profileResponse = await apiClient.getProfile(asAny(userLogin.data).access_token);
+      userId = asAny(profileResponse.data).id;
     });
 
     test('Nên áp dụng rate limit cho admin profile edit endpoint', async () => {

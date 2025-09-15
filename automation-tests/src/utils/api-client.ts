@@ -9,6 +9,24 @@ export interface AuthTokens {
   refresh_token: string;
 }
 
+export interface ErrorResponse {
+  message: string;
+  error?: string;
+  statusCode?: number;
+}
+
+export interface UserProfile {
+  id: string;
+  userName: string;
+  userCode: string;
+  role?: string;
+  createdAt?: string;
+}
+
+// Union type for different response types
+export type AuthResponse = AuthTokens | ErrorResponse;
+export type ProfileResponse = UserProfile | ErrorResponse;
+
 export interface RequestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   url: string;
@@ -78,7 +96,7 @@ export class ApiClient {
     password: string;
     confirmPassword: string;
     userCode: string;
-  }): Promise<ApiResponse<AuthTokens>> {
+  }): Promise<ApiResponse<AuthResponse>> {
     return this.request({
       method: 'POST',
       url: '/api/auth/register',
@@ -89,7 +107,7 @@ export class ApiClient {
   async login(credentials: {
     userName: string;
     password: string;
-  }): Promise<ApiResponse<AuthTokens>> {
+  }): Promise<ApiResponse<AuthResponse>> {
     return this.request({
       method: 'POST',
       url: '/api/auth/login',
@@ -97,7 +115,7 @@ export class ApiClient {
     });
   }
 
-  async refreshToken(refreshToken: string): Promise<ApiResponse<AuthTokens>> {
+  async refreshToken(refreshToken: string): Promise<ApiResponse<AuthResponse>> {
     return this.request({
       method: 'POST',
       url: '/api/auth/refresh',
@@ -105,7 +123,7 @@ export class ApiClient {
     });
   }
 
-  async logout(token: string): Promise<ApiResponse> {
+  async logout(token: string): Promise<ApiResponse<ErrorResponse>> {
     return this.request({
       method: 'POST',
       url: '/api/auth/logout',
@@ -115,7 +133,7 @@ export class ApiClient {
     });
   }
 
-  async getProfile(token: string): Promise<ApiResponse> {
+  async getProfile(token: string): Promise<ApiResponse<ProfileResponse>> {
     return this.request({
       method: 'GET',
       url: '/api/auth/profile',
@@ -125,7 +143,7 @@ export class ApiClient {
     });
   }
 
-  async updateProfile(token: string, userId: number, updateData: any): Promise<ApiResponse> {
+  async updateProfile(token: string, userId: number, updateData: any): Promise<ApiResponse<ProfileResponse>> {
     return this.request({
       method: 'PUT',
       url: `/api/auth/profile/${userId}`,

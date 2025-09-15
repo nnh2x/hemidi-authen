@@ -2,6 +2,9 @@ import { ApiClient } from '../utils/api-client';
 import { TestDataGenerator } from '../data/test-data';
 import { config } from '../config/config';
 
+// Type assertion helper for test responses
+const asAny = (data: any) => data as any;
+
 describe('Authentication API Tests', () => {
   let apiClient: ApiClient;
   let testUser: any;
@@ -31,9 +34,9 @@ describe('Authentication API Tests', () => {
       const response = await apiClient.register(testUser);
       
       expect(response.status).toBe(201);
-      expect(response.data).toHaveJwtTokens();
-      expect(response.data.access_token).toBeDefined();
-      expect(response.data.refresh_token).toBeDefined();
+      expect(asAny(response.data)).toHaveJwtTokens();
+      expect(asAny(response.data).access_token).toBeDefined();
+      expect(asAny(response.data).refresh_token).toBeDefined();
       expect(response.headers).toHaveRateLimitHeaders();
     });
 
@@ -42,7 +45,7 @@ describe('Authentication API Tests', () => {
       
       expect(response.status).toBe(400);
       expect(response.data).toHaveProperty('message');
-      expect(response.data.message).toContain('đã tồn tại');
+      expect((response.data as any).message).toContain('đã tồn tại');
     });
 
     test('Nên từ chối đăng ký với mật khẩu không khớp', async () => {
@@ -50,7 +53,7 @@ describe('Authentication API Tests', () => {
       const response = await apiClient.register(invalidUser);
       
       expect(response.status).toBe(400);
-      expect(response.data.message).toContain('Mật khẩu xác nhận không khớp');
+      expect((response.data as any).message).toContain('Mật khẩu xác nhận không khớp');
     });
 
     test.each(Object.entries(TestDataGenerator.getInvalidRegistrationData()))(
@@ -79,7 +82,7 @@ describe('Authentication API Tests', () => {
       // Excess requests should be rate limited
       responses.slice(limit).forEach(response => {
         expect(response.status).toBe(429);
-        expect(response.data.message).toContain('rate limit');
+        expect(asAny(response.data).message).toContain('rate limit');
       });
     });
 
@@ -128,7 +131,7 @@ describe('Authentication API Tests', () => {
       const response = await apiClient.login(invalidCredentials);
       
       expect(response.status).toBe(401);
-      expect(response.data.message).toContain('Tên đăng nhập hoặc mật khẩu không đúng');
+      expect(asAny(response.data).message).toContain('Tên đăng nhập hoặc mật khẩu không đúng');
     });
 
     test('Nên từ chối đăng nhập với tên người dùng không tồn tại', async () => {
@@ -139,7 +142,7 @@ describe('Authentication API Tests', () => {
       const response = await apiClient.login(nonExistentUser);
       
       expect(response.status).toBe(401);
-      expect(response.data.message).toContain('Tên đăng nhập hoặc mật khẩu không đúng');
+      expect(asAny(response.data).message).toContain('Tên đăng nhập hoặc mật khẩu không đúng');
     });
 
     test.each(Object.entries(TestDataGenerator.getInvalidLoginData()))(
@@ -170,7 +173,7 @@ describe('Authentication API Tests', () => {
       // Excess requests should be rate limited
       responses.slice(limit).forEach(response => {
         expect(response.status).toBe(429);
-        expect(response.data.message).toContain('rate limit');
+        expect(asAny(response.data).message).toContain('rate limit');
       });
     });
 
@@ -191,7 +194,7 @@ describe('Authentication API Tests', () => {
       
       expect(response.status).toBe(200);
       expect(response.data).toHaveJwtTokens();
-      expect(response.data.access_token).not.toBe(userTokens.access_token);
+      expect(asAny(response.data).access_token).not.toBe(userTokens.access_token);
       expect(response.headers).toHaveRateLimitHeaders();
       
       // Update tokens
@@ -202,7 +205,7 @@ describe('Authentication API Tests', () => {
       const response = await apiClient.refreshToken('invalid_refresh_token');
       
       expect(response.status).toBe(401);
-      expect(response.data.message).toContain('Refresh token không hợp lệ');
+      expect(asAny(response.data).message).toContain('Refresh token không hợp lệ');
     });
 
     test('Nên từ chối làm mới với refresh token rỗng', async () => {
@@ -223,7 +226,7 @@ describe('Authentication API Tests', () => {
       expect(response.data).toHaveProperty('id');
       expect(response.data).toHaveProperty('userName');
       expect(response.data).toHaveProperty('userCode');
-      expect(response.data.userName).toBe(testUser.userName);
+      expect(asAny(response.data).userName).toBe(testUser.userName);
       expect(response.headers).toHaveRateLimitHeaders();
     });
 
@@ -231,14 +234,14 @@ describe('Authentication API Tests', () => {
       const response = await apiClient.getProfile('invalid_token');
       
       expect(response.status).toBe(401);
-      expect(response.data.message).toContain('Token không hợp lệ');
+      expect(asAny(response.data).message).toContain('Token không hợp lệ');
     });
 
     test('Nên từ chối truy cập profile khi không có token', async () => {
       const response = await apiClient.getProfile('');
       
       expect(response.status).toBe(401);
-      expect(response.data.message).toContain('Token không được cung cấp');
+      expect(asAny(response.data).message).toContain('Token không được cung cấp');
     });
   });
 
@@ -249,7 +252,7 @@ describe('Authentication API Tests', () => {
       const response = await apiClient.logout(userTokens.access_token);
       
       expect(response.status).toBe(200);
-      expect(response.data.message).toBe('Đăng xuất thành công');
+      expect(asAny(response.data).message).toBe('Đăng xuất thành công');
       expect(response.headers).toHaveRateLimitHeaders();
     });
 
@@ -258,21 +261,21 @@ describe('Authentication API Tests', () => {
       const response = await apiClient.getProfile(userTokens.access_token);
       
       expect(response.status).toBe(401);
-      expect(response.data.message).toContain('Token đã bị vô hiệu hóa');
+      expect(asAny(response.data).message).toContain('Token đã bị vô hiệu hóa');
     });
 
     test('Nên từ chối đăng xuất với token không hợp lệ', async () => {
       const response = await apiClient.logout('invalid_token');
       
       expect(response.status).toBe(401);
-      expect(response.data.message).toContain('Token không hợp lệ');
+      expect(asAny(response.data).message).toContain('Token không hợp lệ');
     });
 
     test('Nên từ chối đăng xuất khi không có token', async () => {
       const response = await apiClient.logout('');
       
       expect(response.status).toBe(401);
-      expect(response.data.message).toContain('Token không được cung cấp');
+      expect(asAny(response.data).message).toContain('Token không được cung cấp');
     });
   });
 });

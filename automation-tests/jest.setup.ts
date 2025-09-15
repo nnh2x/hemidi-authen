@@ -61,6 +61,40 @@ expect.extend({
         pass: false,
       };
     }
+  },
+
+  toHaveJwtTokens(received: any) {
+    const requiredTokens = ['access_token', 'refresh_token'];
+    const jwtRegex = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*$/;
+    
+    const missingTokens = requiredTokens.filter(token => 
+      !received || !received[token]
+    );
+    
+    const invalidTokens = requiredTokens.filter(token => 
+      received && received[token] && !jwtRegex.test(received[token])
+    );
+    
+    const pass = missingTokens.length === 0 && invalidTokens.length === 0;
+    
+    if (pass) {
+      return {
+        message: () => `expected response not to have valid JWT tokens`,
+        pass: true,
+      };
+    } else {
+      let errorMessage = 'expected response to have valid JWT tokens';
+      if (missingTokens.length > 0) {
+        errorMessage += `. Missing tokens: ${missingTokens.join(', ')}`;
+      }
+      if (invalidTokens.length > 0) {
+        errorMessage += `. Invalid JWT format: ${invalidTokens.join(', ')}`;
+      }
+      return {
+        message: () => errorMessage,
+        pass: false,
+      };
+    }
   }
 });
 
@@ -70,6 +104,9 @@ declare global {
     interface Matchers<R> {
       toBeValidJWT(): R;
       toHaveRateLimitHeaders(): R;
+      toHaveJwtTokens(): R;
     }
   }
 }
+
+

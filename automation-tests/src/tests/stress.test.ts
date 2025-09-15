@@ -4,6 +4,9 @@ import { ApiClient } from '../utils/api-client';
 import { TestDataGenerator } from '../data/test-data';
 import { config } from '../config/config';
 
+// Type assertion helper for test responses
+const asAny = (data: any) => data as any;
+
 describe('Comprehensive Stress Tests - Rate Limit Validation', () => {
   let stressRunner: StressTestRunner;
   let excelReporter: ExcelReporter;
@@ -141,8 +144,8 @@ describe('Comprehensive Stress Tests - Rate Limit Validation', () => {
       const userLogin = await apiClient.login(TestDataGenerator.getLoginCredentials(user));
       const adminLogin = await apiClient.login(TestDataGenerator.getLoginCredentials(admin));
       
-      userToken = userLogin.data.access_token;
-      adminToken = adminLogin.data.access_token;
+      userToken = asAny(userLogin.data).access_token;
+      adminToken = asAny(adminLogin.data).access_token;
       
       console.log('✅ Test users authenticated for rate limit testing');
     });
@@ -179,7 +182,7 @@ describe('Comprehensive Stress Tests - Rate Limit Validation', () => {
       for (const user of users) {
         await apiClient.register(user);
         const login = await apiClient.login(TestDataGenerator.getLoginCredentials(user));
-        tokens.push(login.data.access_token);
+        tokens.push(asAny(login.data).access_token);
       }
       
       const testConfig: StressTestConfig = {
