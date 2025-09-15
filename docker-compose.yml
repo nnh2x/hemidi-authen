@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  hemidi-mysql:
+    image: mysql:8.0
+    container_name: hemidi-database
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: huyngo123!
+      MYSQL_DATABASE: hemidi_database
+      MYSQL_USER: hemidi_huyngo
+      MYSQL_PASSWORD: huyngo123!
+    ports:
+      - "3306:3306"
+    volumes:
+      - hemidi-mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+volumes:
+  hemidi-mysql-data:
