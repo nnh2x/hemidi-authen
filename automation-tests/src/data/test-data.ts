@@ -1,0 +1,215 @@
+export interface TestUser {
+  userName: string;
+  password: string;
+  confirmPassword: string;
+  userCode: string;
+  role?: 'admin' | 'user';
+}
+
+export interface LoginCredentials {
+  userName: string;
+  password: string;
+}
+
+export class TestDataGenerator {
+  // Predefined test users
+  static readonly TEST_USERS = {
+    ADMIN: {
+      userName: 'admin_test',
+      password: 'AdminPass123!',
+      confirmPassword: 'AdminPass123!',
+      userCode: 'ADMIN001',
+      role: 'admin' as const,
+    },
+    REGULAR_USER: {
+      userName: 'user_test',
+      password: 'UserPass123!',
+      confirmPassword: 'UserPass123!',
+      userCode: 'USER001',
+      role: 'user' as const,
+    },
+    INVALID_USER: {
+      userName: '',
+      password: '',
+      confirmPassword: '',
+      userCode: '',
+    },
+    PASSWORD_MISMATCH: {
+      userName: 'test_mismatch',
+      password: 'Password123!',
+      confirmPassword: 'DifferentPassword123!',
+      userCode: 'MISMATCH001',
+    },
+  };
+
+  // Generate random user data
+  static generateRandomUser(role: 'admin' | 'user' = 'user'): TestUser {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    
+    return {
+      userName: `test_user_${timestamp}_${random}`,
+      password: 'TestPass123!',
+      confirmPassword: 'TestPass123!',
+      userCode: `CODE${timestamp}${random}`,
+      role,
+    };
+  }
+
+  // Generate multiple users
+  static generateMultipleUsers(count: number, role: 'admin' | 'user' = 'user'): TestUser[] {
+    return Array.from({ length: count }, () => this.generateRandomUser(role));
+  }
+
+  // Generate login credentials
+  static getLoginCredentials(user: TestUser): LoginCredentials {
+    return {
+      userName: user.userName,
+      password: user.password,
+    };
+  }
+
+  // Invalid data scenarios
+  static getInvalidRegistrationData() {
+    return {
+      EMPTY_USERNAME: {
+        userName: '',
+        password: 'ValidPass123!',
+        confirmPassword: 'ValidPass123!',
+        userCode: 'VALID001',
+      },
+      EMPTY_PASSWORD: {
+        userName: 'valid_user',
+        password: '',
+        confirmPassword: '',
+        userCode: 'VALID002',
+      },
+      SHORT_PASSWORD: {
+        userName: 'valid_user',
+        password: '123',
+        confirmPassword: '123',
+        userCode: 'VALID003',
+      },
+      WEAK_PASSWORD: {
+        userName: 'valid_user',
+        password: 'password',
+        confirmPassword: 'password',
+        userCode: 'VALID004',
+      },
+      PASSWORD_MISMATCH: {
+        userName: 'valid_user',
+        password: 'ValidPass123!',
+        confirmPassword: 'DifferentPass123!',
+        userCode: 'VALID005',
+      },
+      EMPTY_USER_CODE: {
+        userName: 'valid_user',
+        password: 'ValidPass123!',
+        confirmPassword: 'ValidPass123!',
+        userCode: '',
+      },
+      LONG_USERNAME: {
+        userName: 'a'.repeat(256), // Very long username
+        password: 'ValidPass123!',
+        confirmPassword: 'ValidPass123!',
+        userCode: 'VALID006',
+      },
+    };
+  }
+
+  // Invalid login data scenarios
+  static getInvalidLoginData() {
+    return {
+      EMPTY_USERNAME: {
+        userName: '',
+        password: 'SomePassword123!',
+      },
+      EMPTY_PASSWORD: {
+        userName: 'someuser',
+        password: '',
+      },
+      WRONG_PASSWORD: {
+        userName: 'existing_user',
+        password: 'WrongPassword123!',
+      },
+      NON_EXISTENT_USER: {
+        userName: 'non_existent_user_' + Date.now(),
+        password: 'SomePassword123!',
+      },
+    };
+  }
+
+  // SQL Injection test data
+  static getSqlInjectionTestData() {
+    return {
+      REGISTRATION: {
+        userName: "admin'; DROP TABLE users; --",
+        password: 'ValidPass123!',
+        confirmPassword: 'ValidPass123!',
+        userCode: 'INJECT001',
+      },
+      LOGIN: {
+        userName: "admin' OR '1'='1",
+        password: "password' OR '1'='1",
+      },
+    };
+  }
+
+  // XSS test data
+  static getXssTestData() {
+    return {
+      REGISTRATION: {
+        userName: '<script>alert("XSS")</script>',
+        password: 'ValidPass123!',
+        confirmPassword: 'ValidPass123!',
+        userCode: 'XSS001',
+      },
+      USER_CODE: {
+        userName: 'valid_user',
+        password: 'ValidPass123!',
+        confirmPassword: 'ValidPass123!',
+        userCode: '<img src=x onerror=alert("XSS")>',
+      },
+    };
+  }
+
+  // Rate limiting test data
+  static generateRateLimitTestUsers(count: number) {
+    return {
+      anonymous: Array.from({ length: count }, (_, i) => ({
+        userName: `anon_user_${Date.now()}_${i}`,
+        password: 'TestPass123!',
+        confirmPassword: 'TestPass123!',
+        userCode: `ANON${Date.now()}${i}`,
+      })),
+      users: Array.from({ length: count }, (_, i) => 
+        this.generateRandomUser('user')
+      ),
+      admins: Array.from({ length: count }, (_, i) => 
+        this.generateRandomUser('admin')
+      ),
+    };
+  }
+
+  // Test profile update data
+  static getProfileUpdateData() {
+    return {
+      VALID_UPDATE: {
+        userName: 'updated_username',
+        userCode: 'UPDATED001',
+      },
+      EMPTY_USERNAME: {
+        userName: '',
+        userCode: 'VALID001',
+      },
+      DUPLICATE_USERNAME: {
+        userName: 'existing_username',
+        userCode: 'VALID002',
+      },
+      XSS_USERNAME: {
+        userName: '<script>alert("XSS")</script>',
+        userCode: 'XSS002',
+      },
+    };
+  }
+}

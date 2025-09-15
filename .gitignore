@@ -54,3 +54,223 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+.docker/
+
+# TypeScript
+*.tsbuildinfo
+.tscache/
+
+# ESLint
+.eslintcache
+
+# Prettier
+.prettierignore
+
+# TypeORM
+ormconfig.json
+
+# JWT Keys
+*.pem
+*.key
+private-key.txt
+public-key.txt
+
+# Uploads
+uploads/
+files/
+public/uploads/
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Swagger/OpenAPI
+swagger-spec.json
+api-docs.json
+
+# Test coverage and reports
+coverage/
+.nyc_output/
+junit.xml
+test-results/
+test-report.html
+mochawesome-report/
+
+# Automation Testing
+automation-tests/node_modules/
+automation-tests/coverage/
+automation-tests/reports/
+automation-tests/allure-results/
+automation-tests/allure-report/
+automation-tests/.env.local
+automation-tests/.env.test
+
+# Test screenshots and videos
+screenshots/
+videos/
+test-artifacts/
+
+# Performance testing
+k6-results/
+artillery-reports/
+
+# Lock files (choose one)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+build/
+out/
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# Security
+.secrets
+secrets/
+.env.secrets
+
+# Local development
+.local/
+local.json
+
+# Monitoring and logging
+logs/
+*.log.*
+combined.log
+error.log
+access.log
+
+# PM2
+.pm2/
+ecosystem.config.js
+
+# Webpack
+.webpack/
+
+# Serverless
+.serverless/
+
+# Next.js (if using)
+.next/
+
+# Nuxt.js (if using)
+.nuxt/
+
+# Gatsby (if using)
+.cache/
+public/
+
+# Storybook (if using)
+.out/
+.storybook-out/
+
+# Temporary folders
+tmp/
+temp/
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.nfs*
+
+# Editor backups
+*~
+*.swp
+*.swo
+*#
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+.vimrc.local
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Migration backups
+*.migration.backup
+
+# Database dumps
+*.sql
+*.dump
+
+# Redis dumps
+dump.rdb
+
+# Certificate files
+*.crt
+*.cer
+*.p12
+*.pfx
+
+# SSH keys
+id_rsa
+id_rsa.pub
+*.pub
+
+# AWS
+.aws/
+
+# Google Cloud
+.gcloud/
+gcloud-key.json
+service-account-key.json
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Kubernetes
+*.kubeconfig
+
+# Helm
+charts/*/charts/
+charts/*/requirements.lock
+
+# Prometheus/Grafana configs
+prometheus.yml
+grafana.ini
