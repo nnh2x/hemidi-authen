@@ -116,7 +116,7 @@ LEVELS:
 
   private async executeStressTests(options: CLIOptions): Promise<any[]> {
     const testConfigs = this.getTestConfigs(options);
-    const results = [];
+    const results = [] as any[];
 
     for (const [index, testConfig] of testConfigs.entries()) {
       console.log(`\n🎯 Test ${index + 1}/${testConfigs.length}: ${testConfig.name}`);
