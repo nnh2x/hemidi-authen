@@ -276,4 +276,51 @@ export class AuthService {
         const { password, ...result } = updatedUser;
         return result;
     }
+
+    /**
+     * Validate JWT token for microservices
+     */
+    async validateToken(token: string): Promise<{ valid: boolean; user?: any; message?: string }> {
+        try {
+            // Check if token is blacklisted
+            const blacklistedToken = await this.blacklistedTokenRepository.findOne({
+                where: { token },
+            });
+
+            if (blacklistedToken) {
+                return {
+                    valid: false,
+                    message: 'Token has been blacklisted',
+                };
+            }
+
+            // Verify and decode token
+            const decoded = this.jwtService.verify(token);
+            
+            // Get user information
+            const user = await this.userRepository.findOne({
+                where: { id: decoded.sub },
+            });
+
+            if (!user) {
+                return {
+                    valid: false,
+                    message: 'User not found',
+                };
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { password, ...userWithoutPassword } = user;
+
+            return {
+                valid: true,
+                user: userWithoutPassword,
+            };
+        } catch (error) {
+            return {
+                valid: false,
+                message: 'Invalid token',
+            };
+        }
+    }
 }

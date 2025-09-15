@@ -203,4 +203,57 @@ export class AuthController {
   ) {
     return this.authService.updateProfile(+userId, updateProfileDto, currentUser);
   }
+
+  @Post("validate-token")
+  @RateLimit(createRateLimitConfig(
+    { limit: 10, window: 60 },    // Anonymous: 10 requests / 1 minute
+    { limit: 50, window: 60 },    // User: 50 requests / 1 minute
+    { limit: 100, window: 60 }    // Admin: 100 requests / 1 minute
+  ))
+  @ApiOperation({ summary: "Xác thực token từ các microservices khác" })
+  @ApiResponse({
+    status: 200,
+    description: "Token hợp lệ",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Token không hợp lệ",
+  })
+  async validateToken(@Body() body: { token: string }) {
+    return this.authService.validateToken(body.token);
+  }
+
+  @Get("me")
+  @UseGuards(JwtAuthGuard)
+  @RateLimit(createRateLimitConfig(
+    { limit: 0, window: 60 },     // Anonymous: 0 requests (cần đăng nhập)
+    { limit: 20, window: 60 },    // User: 20 requests / 1 minute
+    { limit: 50, window: 60 }     // Admin: 50 requests / 1 minute
+  ))
+  @ApiOperation({ summary: "Lấy thông tin người dùng hiện tại" })
+  @ApiResponse({
+    status: 200,
+    description: "Thông tin người dùng",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Token không hợp lệ",
+  })
+  async getCurrentUser(@CurrentUser() user: UserDto) {
+    return { user };
+  }
+
+  @Get("health")
+  @ApiOperation({ summary: "Kiểm tra tình trạng hoạt động của auth service" })
+  @ApiResponse({
+    status: 200,
+    description: "Service đang hoạt động",
+  })
+  async healthCheck() {
+    return {
+      status: "ok",
+      service: "Authentication Service",
+      timestamp: new Date().toISOString(),
+    };
+  }
 }
