@@ -9,6 +9,9 @@ import { User } from "../../entities/user.entity";
 import { BlacklistedToken } from "../../entities/blacklisted-token.entity";
 import { RefreshToken } from "../../entities/refresh-token.entity";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { RateLimitService } from "../../services/rate-limit.service";
+import { RateLimitGuard } from "../gruard/rate-limit.guard";
+import { RateLimitCleanupService } from "../../services/rate-limit-cleanup.service";
 
 @Module({
     imports: [
@@ -30,7 +33,13 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
         }),
     ],
     controllers: [AuthController],
-    providers: [AuthService, JwtStrategy],
-    exports: [AuthService],
+    providers: [
+        AuthService, 
+        JwtStrategy, 
+        RateLimitService, 
+        RateLimitGuard, 
+        RateLimitCleanupService
+    ],
+    exports: [AuthService, RateLimitService],
 })
 export class AuthModule {}

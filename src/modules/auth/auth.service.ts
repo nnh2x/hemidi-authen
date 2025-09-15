@@ -29,26 +29,27 @@ export class AuthService {
         @InjectRepository(RefreshToken)
         private refreshTokenRepository: Repository<RefreshToken>,
         private jwtService: JwtService,
-    ) {}
+    ) { }
 
     async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
-        const { userName, password, confirmPassword } = registerDto;
+        const { userName, password, confirmPassword, userCode } = registerDto;
 
-    // Check if passwords match
-    if (password !== confirmPassword) {
-      throw new BadRequestException('Mật khẩu không khớp');
-    }        // Check if user already exists
+        // Kiểm tra mật khẩu có khớp không
+        if (password !== confirmPassword) {
+            throw new BadRequestException('Mật khẩu không khớp');
+        }                // Kiểm tra người dùng đã tồn tại chưa
         const existingUser = await this.userRepository.findOne({
-            where: { userName: userName },
+            where: { userName : userName , userCode: userCode },
         });
         if (existingUser) {
-      throw new ConflictException('Tên đăng nhập đã tồn tại');
-    }
+            throw new ConflictException('Tên đăng nhập đã tồn tại');
+        }
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+                // Mã hóa mật khẩu
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        // Create user
+        // Tạo người dùng mới
         const user = this.userRepository.create({
             userName: userName,
             password: hashedPassword,
@@ -57,28 +58,29 @@ export class AuthService {
 
         const savedUser = await this.userRepository.save(user);
 
-        // Generate JWT tokens
+        // Tạo JWT tokens
         return await this.generateTokens(savedUser);
     }
 
     async login(loginDto: LoginDto): Promise<AuthResponseDto> {
         const { userName, password } = loginDto;
 
-        // Find user by userName
+        // Tìm người dùng theo tên đăng nhập
         const user = await this.userRepository.findOne({
             where: { userName: userName },
         });
-    if (!user) {
-            throw new UnauthorizedException("Invalid credentials");
+
+        if (!user) {
+            throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
         }
 
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user?.password || '');
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
-    }
+        // Xác minh mật khẩu
+        const isPasswordValid = await bcrypt.compare(password, user?.password || '');
+        if (!isPasswordValid) {
+            throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
+        }
 
-        // Generate JWT tokens
+        // Tạo JWT tokens
         return await this.generateTokens(user);
     }
 
@@ -88,11 +90,18 @@ export class AuthService {
 
     async logout(token: string, userId: number): Promise<{ message: string }> {
         try {
-            const expiresAt = new Date(1 * 1000); // Convert from seconds to milliseconds
-            console.log('object', expiresAt);
-            console.log('userId');
+            // Giải mã token để lấy thời gian hết hạn
+            const decoded = this.jwtService.decode(token) as any;
+            if (!decoded || !decoded.exp) {
+                throw new UnauthorizedException('Token không hợp lệ');
+            }
 
-            // Add token to blacklist
+            // Chuyển đổi thời gian hết hạn từ giây sang mili giây
+            const expiresAt = new Date(decoded.exp * 1000);
+            console.log('Token expires at:', expiresAt);
+            console.log('User ID:', userId);
+
+            // Thêm token vào danh sách đen
             const blacklistedToken = this.blacklistedTokenRepository.create({
                 token,
                 userId,
@@ -101,8 +110,15 @@ export class AuthService {
 
             await this.blacklistedTokenRepository.save(blacklistedToken);
 
+            // Vô hiệu hóa tất cả refresh tokens của người dùng này
+            await this.refreshTokenRepository.update(
+                { userId, isRevoked: false },
+                { isRevoked: true }
+            );
+
             return { message: "Đăng xuất thành công" };
-        } catch {
+        } catch (error) {
+            console.error('Logout error:', error);
             throw new UnauthorizedException("Token không hợp lệ");
         }
     }
@@ -115,7 +131,7 @@ export class AuthService {
     }
 
     async cleanupExpiredTokens(): Promise<void> {
-        // Remove expired blacklisted tokens to keep the database clean
+        // Xóa các token blacklisted đã hết hạn để giữ database sạch sẽ
         await this.blacklistedTokenRepository
             .createQueryBuilder()
             .delete()
@@ -127,19 +143,19 @@ export class AuthService {
         token: string,
     ): Promise<Omit<User, "password">> {
         try {
-            // Check if token is blacklisted first
+            // Kiểm tra token có trong blacklist không
             const isBlacklisted = await this.isTokenBlacklisted(token);
             if (isBlacklisted) {
                 throw new UnauthorizedException("Token đã bị vô hiệu hóa");
             }
 
-            // Verify and decode token
+            // Xác thực và giải mã token
             const payload = this.jwtService.verify(token) as {
                 sub: number;
                 userName: string;
             };
 
-            // Get user from database
+            // Lấy thông tin người dùng từ database
             const user = await this.userRepository.findOne({
                 where: { id: payload.sub },
             });
@@ -171,21 +187,21 @@ export class AuthService {
         return result;
     }
 
-    // Helper methods for token generation
+    // Các phương thức hỗ trợ tạo token
     private async generateTokens(user: User): Promise<{ access_token: string; refresh_token: string }> {
         const payload = { userName: user.userName, sub: user.id };
         
-        // Generate access token (expires in 15 minutes)
+        // Tạo access token (hết hạn sau 15 phút)
         const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
         
-        // Generate refresh token (expires in 7 days)
+        // Tạo refresh token (hết hạn sau 7 ngày)
         const refresh_token = this.jwtService.sign(payload, { expiresIn: '7d' });
         
-        // Save refresh token to database
+        // Lưu refresh token vào database
         const refreshTokenEntity = this.refreshTokenRepository.create({
             refreshToken: refresh_token,
             userId: user.id,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 ngày
             isRevoked: false,
         });
         
@@ -196,31 +212,31 @@ export class AuthService {
 
     async refresh(refreshTokenDto: RefreshTokenDto): Promise<AuthResponseDto> {
         const { refresh_token } = refreshTokenDto;
-        
+
         try {
-            // Verify refresh token
+            // Xác thực refresh token
             const payload = this.jwtService.verify(refresh_token) as { sub: number; userName: string };
-            
-            // Check if refresh token exists in database and is not revoked
+
+            // Kiểm tra refresh token có tồn tại trong database và chưa bị thu hồi
             const storedToken = await this.refreshTokenRepository.findOne({
                 where: { refreshToken: refresh_token, isRevoked: false },
                 relations: ['user'],
             });
-            
+
             if (!storedToken || storedToken.expiresAt < new Date()) {
                 throw new UnauthorizedException('Refresh token không hợp lệ hoặc đã hết hạn');
             }
-            
-            // Revoke old refresh token
+
+            // Vô hiệu hóa refresh token cũ
             storedToken.isRevoked = true;
             await this.refreshTokenRepository.save(storedToken);
-            
-            // Generate new tokens
+
+            // Tạo token mới
             const user = await this.userRepository.findOne({ where: { id: payload.sub } });
             if (!user) {
                 throw new UnauthorizedException('Không tìm thấy người dùng');
             }
-            
+
             return await this.generateTokens(user);
         } catch (error) {
             throw new UnauthorizedException('Refresh token không hợp lệ');
@@ -232,6 +248,8 @@ export class AuthService {
         if (!user) {
             throw new UnauthorizedException('Không tìm thấy người dùng');
         }
+
+        console.log('currentUser', currentUser);
 
         // Check if user is updating their own profile or if current user is admin
         if (userId !== currentUser.id && !currentUser.isAdmin) {

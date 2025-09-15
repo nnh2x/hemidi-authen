@@ -22,23 +22,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(req: Request, payload: { sub: number; userName: string }) {
-        // Extract token from request header
+        // Trích xuất token từ request header
         const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
 
         if (!token) {
-            throw new UnauthorizedException("Token not found");
+            throw new UnauthorizedException("Không tìm thấy token");
         }
 
-        // Check if token is blacklisted
+        // Kiểm tra token có trong blacklist không
         const isBlacklisted = await this.authService.isTokenBlacklisted(token);
         if (isBlacklisted) {
-            throw new UnauthorizedException("Token has been invalidated");
+            throw new UnauthorizedException("Token đã bị thu hồi");
         }
 
-        // Validate user
+        // Xác thực người dùng
         const user = await this.authService.validateUserById(payload.sub);
         if (!user) {
-            throw new UnauthorizedException("User not found");
+            throw new UnauthorizedException("Không tìm thấy người dùng");
         }
 
         return user;

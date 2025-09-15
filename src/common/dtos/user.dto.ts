@@ -4,7 +4,7 @@ import { IsString, IsUUID } from "class-validator";
 /** Interface user */
 export class UserDto {
     @ApiProperty({
-        description: "Id user",
+        description: "ID người dùng",
         example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
     })
     @IsUUID()

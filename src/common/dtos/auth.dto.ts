@@ -42,13 +42,13 @@ export class RegisterDto extends LoginDto {
 
 export class AuthResponseDto {
     @ApiProperty({
-        description: "JWT access token",
+        description: "Token truy cập JWT",
         example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     })
     access_token: string;
 
     @ApiProperty({
-        description: "JWT refresh token",
+        description: "Token làm mới JWT",
         example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     })
     refresh_token: string;
@@ -56,7 +56,7 @@ export class AuthResponseDto {
 
 export class RefreshTokenDto {
     @ApiProperty({
-        description: "Refresh token để làm mới access token",
+        description: "Token làm mới để lấy token truy cập mới",
         example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     })
     @IsString()

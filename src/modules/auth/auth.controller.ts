@@ -28,13 +28,21 @@ import { CurrentUser } from "src/decorators/current-user.decorator";
 import { UserDto } from "src/common/dtos/user.dto";
 import { JwtAuthGuard } from "../gruard/jwt-auth.guard";
 import { AdminGuard } from "../gruard/admin.guard";
+import { RateLimitGuard } from "../gruard/rate-limit.guard";
+import { RateLimit, createRateLimitConfig } from "../../decorators/rate-limit.decorator";
 
 @ApiTags("Xác thực")
 @Controller("api/auth")
+@UseGuards(RateLimitGuard)
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
 
   @Post("register")
+  @RateLimit(createRateLimitConfig(
+    { limit: 3, window: 300 },    // Anonymous: 3 requests / 5 minutes
+    { limit: 5, window: 300 },    // User: 5 requests / 5 minutes  
+    { limit: 10, window: 300 }    // Admin: 10 requests / 5 minutes
+  ))
   @ApiOperation({ summary: "Đăng ký người dùng mới" })
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
@@ -50,11 +58,20 @@ export class AuthController {
     status: 409,
     description: "Xung đột - tên đăng nhập đã tồn tại",
   })
+  @ApiResponse({
+    status: 429,
+    description: "Quá nhiều yêu cầu - vui lòng thử lại sau",
+  })
   async register(@Body() registerDto: RegisterDto): Promise<AuthResponseDto> {
     return this.authService.register(registerDto);
   }
 
   @Post("login")
+  @RateLimit(createRateLimitConfig(
+    { limit: 5, window: 300 },    // Anonymous: 5 requests / 5 minutes (chống brute force)
+    { limit: 10, window: 300 },   // User: 10 requests / 5 minutes
+    { limit: 20, window: 300 }    // Admin: 20 requests / 5 minutes
+  ))
   @ApiOperation({ summary: "Đăng nhập bằng tên đăng nhập và mật khẩu" })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
@@ -66,12 +83,21 @@ export class AuthController {
     status: 401,
     description: "Không có quyền - thông tin đăng nhập không hợp lệ",
   })
+  @ApiResponse({
+    status: 429,
+    description: "Quá nhiều yêu cầu đăng nhập - vui lòng thử lại sau",
+  })
   async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(loginDto);
   }
 
   @Get("profile")
   @UseGuards(JwtAuthGuard)
+  @RateLimit(createRateLimitConfig(
+    { limit: 0, window: 60 },     // Anonymous: 0 requests (cần đăng nhập)
+    { limit: 30, window: 60 },    // User: 30 requests / minute
+    { limit: 100, window: 60 }    // Admin: 100 requests / minute
+  ))
   @ApiOperation({ summary: "Lấy thông tin người dùng" })
   @ApiResponse({
     status: 200,
@@ -81,11 +107,20 @@ export class AuthController {
     status: 401,
     description: "Không có quyền - token không hợp lệ hoặc thiếu token",
   })
+  @ApiResponse({
+    status: 429,
+    description: "Quá nhiều yêu cầu - vui lòng thử lại sau",
+  })
   async getProfile(@Request() req: { user: { id: number } }) {
     return this.authService.getProfile(req.user.id);
   }
 
   @Post("refresh")
+  @RateLimit(createRateLimitConfig(
+    { limit: 10, window: 300 },   // Anonymous: 10 requests / 5 minutes
+    { limit: 20, window: 300 },   // User: 20 requests / 5 minutes
+    { limit: 50, window: 300 }    // Admin: 50 requests / 5 minutes
+  ))
   @ApiOperation({ summary: "Làm mới access token bằng refresh token" })
   @ApiBody({ type: RefreshTokenDto })
   @ApiResponse({
@@ -97,12 +132,21 @@ export class AuthController {
     status: 401,
     description: "Không có quyền - refresh token không hợp lệ",
   })
+  @ApiResponse({
+    status: 429,
+    description: "Quá nhiều yêu cầu làm mới token - vui lòng thử lại sau",
+  })
   async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<AuthResponseDto> {
     return this.authService.refresh(refreshTokenDto);
   }
 
   @Post("logout")
   @UseGuards(JwtAuthGuard)
+  @RateLimit(createRateLimitConfig(
+    { limit: 0, window: 60 },     // Anonymous: 0 requests (cần đăng nhập)
+    { limit: 10, window: 60 },    // User: 10 requests / minute
+    { limit: 20, window: 60 }     // Admin: 20 requests / minute
+  ))
   @ApiOperation({ summary: "Đăng xuất và vô hiệu hóa token" })
   @ApiResponse({
     status: 200,
@@ -112,18 +156,29 @@ export class AuthController {
     status: 401,
     description: "Không có quyền - token không hợp lệ",
   })
+  @ApiResponse({
+    status: 429,
+    description: "Quá nhiều yêu cầu đăng xuất - vui lòng thử lại sau",
+  })
   async logout(@Request() req: any, @CurrentUser() user: UserDto) {
     // Extract token from Authorization header
-    console.log('user', user);
-    const token = req.headers?.authorization;
-    if (!token) {
-      throw new Error("Không tìm thấy token trong Authorization header");
+    const authHeader = req.headers?.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException("Không tìm thấy token trong Authorization header");
     }
+
+    // Remove "Bearer " prefix to get the actual token
+    const token = authHeader.substring(7);
     return this.authService.logout(token, +user.id);
   }
 
   @Put("profile/:id")
   @UseGuards(JwtAuthGuard)
+  @RateLimit(createRateLimitConfig(
+    { limit: 0, window: 60 },     // Anonymous: 0 requests (cần đăng nhập)
+    { limit: 5, window: 300 },    // User: 5 requests / 5 minutes (ít cập nhật)
+    { limit: 20, window: 300 }    // Admin: 20 requests / 5 minutes
+  ))
   @ApiOperation({ summary: "Cập nhật thông tin người dùng (admin có thể cập nhật mọi user)" })
   @ApiResponse({
     status: 200,
@@ -136,6 +191,10 @@ export class AuthController {
   @ApiResponse({
     status: 404,
     description: "Không tìm thấy người dùng",
+  })
+  @ApiResponse({
+    status: 429,
+    description: "Quá nhiều yêu cầu cập nhật - vui lòng thử lại sau",
   })
   async updateProfile(
     @Param('id') userId: string,

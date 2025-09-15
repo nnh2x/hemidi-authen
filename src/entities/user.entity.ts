@@ -6,7 +6,7 @@ import { BaseEntity } from "./base.entity";
 @Entity("users")
 export class User extends BaseEntity {
     @ApiProperty({
-        description: "Username for the user",
+        description: "Tên đăng nhập của người dùng",
         example: "john_doe",
     })
     @Column({
@@ -16,7 +16,7 @@ export class User extends BaseEntity {
     userName: string;
 
     @ApiProperty({
-        description: "Code for the user",
+        description: "Mã người dùng",
         example: "user_code",
     })
     @Column({

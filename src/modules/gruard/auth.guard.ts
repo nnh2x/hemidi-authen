@@ -29,7 +29,7 @@ export class AuthGuard implements CanActivate {
             });
             request["user"] = payload;
         } catch {
-            throw new UnauthorizedException("Error validating token");
+            throw new UnauthorizedException("Lỗi xác thực token");
         }
         return true;
     }
